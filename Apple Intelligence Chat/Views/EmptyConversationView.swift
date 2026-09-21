@@ -73,30 +73,16 @@ struct EmptyConversationView: View {
     private var starterList: some View {
         VStack(spacing: 0) {
             ForEach(Starter.all) { starter in
-                Button {
-                    onPick(starter.stem)
-                } label: {
-                    HStack(spacing: 8) {
-                        // Symbols differ in width; a fixed column keeps the
-                        // titles on one edge.
-                        Image(systemName: starter.symbolName)
-                            .foregroundStyle(.secondary)
-                            .frame(width: 20)
-                        Text(starter.title)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 12)
-                    .frame(height: 36)
-                    .contentShape(.rect)
-                }
-                .buttonStyle(StarterRowStyle())
+                StarterRow(starter: starter) { onPick(starter.stem) }
 
                 if starter.id != Starter.all.last?.id {
                     Divider().padding(.leading, 40)
                 }
             }
         }
-        .background(.quaternary.opacity(0.5), in: .rect(cornerRadius: 10))
+        .background(.quaternary.opacity(0.5))
+        // Clipped, so a row's highlight follows the rounded corners.
+        .clipShape(.rect(cornerRadius: 10))
         .disabled(!registry.availability.isAvailable)
     }
 
@@ -142,12 +128,47 @@ private struct Starter: Identifiable {
     ]
 }
 
+/// One starter. Hover and press only tint the row under the pointer.
+private struct StarterRow: View {
+    let starter: Starter
+    let action: () -> Void
+
+    @State private var isHovering = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                // Symbols differ in width; a fixed column keeps the titles
+                // on one edge.
+                Image(systemName: starter.symbolName)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 20)
+                Text(starter.title)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 12)
+            .frame(height: 36)
+            .contentShape(.rect)
+        }
+        .buttonStyle(StarterRowStyle(isHovering: isHovering))
+        .onHover { isHovering = $0 }
+    }
+}
+
 private struct StarterRowStyle: ButtonStyle {
+    let isHovering: Bool
+
     @Environment(\.isEnabled) private var isEnabled
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .foregroundStyle(isEnabled ? .primary : .tertiary)
-            .background(configuration.isPressed ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.clear))
+            .background(.primary.opacity(fill(pressed: configuration.isPressed)))
+    }
+
+    private func fill(pressed: Bool) -> Double {
+        guard isEnabled else { return 0 }
+        if pressed { return 0.12 }
+        return isHovering ? 0.06 : 0
     }
 }
