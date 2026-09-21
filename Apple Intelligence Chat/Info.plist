@@ -27,10 +27,12 @@
 			<key>NSSendTypes</key>
 			<array>
 				<string>public.utf8-plain-text</string>
+				<string>NSStringPboardType</string>
 			</array>
 			<key>NSReturnTypes</key>
 			<array>
 				<string>public.utf8-plain-text</string>
+				<string>NSStringPboardType</string>
 			</array>
 			<key>NSTimeout</key>
 			<string>120000</string>
@@ -48,10 +50,12 @@
 			<key>NSSendTypes</key>
 			<array>
 				<string>public.utf8-plain-text</string>
+				<string>NSStringPboardType</string>
 			</array>
 			<key>NSReturnTypes</key>
 			<array>
 				<string>public.utf8-plain-text</string>
+				<string>NSStringPboardType</string>
 			</array>
 			<key>NSTimeout</key>
 			<string>120000</string>
@@ -69,10 +73,12 @@
 			<key>NSSendTypes</key>
 			<array>
 				<string>public.utf8-plain-text</string>
+				<string>NSStringPboardType</string>
 			</array>
 			<key>NSReturnTypes</key>
 			<array>
 				<string>public.utf8-plain-text</string>
+				<string>NSStringPboardType</string>
 			</array>
 			<key>NSTimeout</key>
 			<string>120000</string>
@@ -90,6 +96,7 @@
 			<key>NSSendTypes</key>
 			<array>
 				<string>public.utf8-plain-text</string>
+				<string>NSStringPboardType</string>
 			</array>
 			<key>NSTimeout</key>
 			<string>10000</string>
