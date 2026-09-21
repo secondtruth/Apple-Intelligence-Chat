@@ -105,12 +105,14 @@ final class OpenAICompatibleProvider: ChatProvider {
 
         struct ModelList: Decodable {
             struct Entry: Decodable { let id: String }
-            let data: [Entry]
+            // Ollama answers an empty catalogue with "data": null rather than
+            // an empty array, so this must tolerate the missing list.
+            let data: [Entry]?
         }
         do {
-            return try JSONDecoder().decode(ModelList.self, from: data).data
+            return try JSONDecoder().decode(ModelList.self, from: data).data?
                 .map(\.id)
-                .sorted()
+                .sorted() ?? []
         } catch {
             throw ProviderError.decoding(error.localizedDescription)
         }
