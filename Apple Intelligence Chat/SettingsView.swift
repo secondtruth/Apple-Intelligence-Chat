@@ -3,6 +3,7 @@
 //  Apple Intelligence Chat
 //
 
+import AVFoundation
 import SwiftUI
 
 /// Where answers come from and how they are generated.
@@ -14,6 +15,8 @@ struct SettingsView: View {
 
     @State private var confirmDeleteAll = false
     @AppStorage("quickAskHotkeyEnabled") private var quickAskHotkeyEnabled = true
+    @AppStorage(VoiceCatalog.preferenceKey) private var voiceIdentifier = ""
+    @State private var speech = SpeechOutputController()
 
     var body: some View {
         Form {
@@ -62,6 +65,28 @@ struct SettingsView: View {
                     .frame(minHeight: 90)
                     .font(.body)
                 Text("Changing this starts a fresh model session for every conversation.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section("Voice") {
+                HStack {
+                    Picker("Reads Replies With", selection: $voiceIdentifier) {
+                        Text("Automatic").tag("")
+                        ForEach(VoiceCatalog.selectable, id: \.language) { group in
+                            Section(VoiceCatalog.languageName(group.language)) {
+                                ForEach(group.voices, id: \.identifier) { voice in
+                                    Text(VoiceCatalog.displayName(of: voice)).tag(voice.identifier)
+                                }
+                            }
+                        }
+                    }
+                    Button("Preview", systemImage: "play.fill") { previewVoice() }
+                        .labelStyle(.iconOnly)
+                        .help("Play a sample")
+                }
+
+                Text(voiceExplanation)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -157,6 +182,28 @@ struct SettingsView: View {
             Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
             Text("Reachable, ^[\(registry.serverModels.count) model](inflect: true)")
         }
+    }
+
+    // MARK: - Voice
+
+    /// Says which voice "Automatic" means on this Mac, per language, instead
+    /// of leaving it to be found out by listening.
+    private var voiceExplanation: String {
+        let resolved = VoiceCatalog.offeredLanguages.compactMap { language -> String? in
+            guard let voice = VoiceCatalog.best(forLanguage: language) else { return nil }
+            return "\(VoiceCatalog.languageName(language)): \(voice.name)"
+        }
+        return String(localized: "Automatic reads each reply with the best voice installed for its language — currently \(resolved.joined(separator: ", ")). A chosen voice is used for replies in its own language. More natural voices can be downloaded in System Settings › Accessibility › Spoken Content › System Voice › Manage Voices.")
+    }
+
+    private func previewVoice() {
+        let voice = voiceIdentifier.isEmpty ? nil : AVSpeechSynthesisVoice(identifier: voiceIdentifier)
+        let language = voice.map { Locale(identifier: $0.language).language.languageCode?.identifier ?? "en" }
+            ?? VoiceCatalog.offeredLanguages.first ?? "en"
+        let sample = language == "de"
+            ? "So klingen vorgelesene Antworten."
+            : "This is how replies will sound."
+        speech.preview(voice ?? VoiceCatalog.best(forLanguage: language), sample: sample)
     }
 
     // MARK: - Bindings into the observable registry

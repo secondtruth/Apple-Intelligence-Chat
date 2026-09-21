@@ -176,16 +176,26 @@ final class SpeechOutputController: NSObject, AVSpeechSynthesizerDelegate {
     }
 
     private func speak(_ message: ChatMessage) {
-        guard !message.text.isEmpty else { return }
+        // Read the reply, not its markup: no asterisks, no backticks, no code.
+        let text = MarkdownDocument(message.text).spokenText
+        guard !text.isEmpty else { return }
+        speakingMessageID = message.id
+        utter(text, voice: VoiceCatalog.voice(for: text))
+    }
 
+    /// Lets Settings play a voice before it is chosen.
+    func preview(_ voice: AVSpeechSynthesisVoice?, sample: String) {
+        speakingMessageID = nil
+        utter(sample, voice: voice ?? VoiceCatalog.voice(for: sample))
+    }
+
+    private func utter(_ text: String, voice: AVSpeechSynthesisVoice?) {
         if synthesizer.isSpeaking {
             synthesizer.stopSpeaking(at: .immediate)
         }
-
-        let utterance = AVSpeechUtterance(string: message.text)
-        utterance.voice = AVSpeechSynthesisVoice(language: Locale.current.identifier)
+        let utterance = AVSpeechUtterance(string: text)
+        utterance.voice = voice
         utterance.rate = AVSpeechUtteranceDefaultSpeechRate
-        speakingMessageID = message.id
         synthesizer.speak(utterance)
     }
 
