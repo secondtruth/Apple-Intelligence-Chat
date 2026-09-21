@@ -15,6 +15,8 @@ struct Apple_Intelligence_ChatApp: App {
     @State private var engine: ChatEngine
     @State private var library: PromptLibrary
     @State private var runner: TextActionRunner
+    @State private var speechSettings: SpeechSettings
+    @State private var speech: SpeechOutputController
 
     @Environment(\.scenePhase) private var scenePhase
 
@@ -29,6 +31,9 @@ struct Apple_Intelligence_ChatApp: App {
         _engine = State(initialValue: ChatEngine(store: store, registry: registry))
         _library = State(initialValue: library)
         _runner = State(initialValue: TextActionRunner(registry: registry, library: library))
+        let speechSettings = SpeechSettings()
+        _speechSettings = State(initialValue: speechSettings)
+        _speech = State(initialValue: SpeechOutputController(settings: speechSettings))
     }
 
     var body: some Scene {
@@ -41,6 +46,7 @@ struct Apple_Intelligence_ChatApp: App {
                 .environment(registry)
                 .environment(engine)
                 .environment(library)
+                .environment(speech)
                 .task {
                     installTextServices()
                     installQuickAsk()
@@ -76,6 +82,8 @@ struct Apple_Intelligence_ChatApp: App {
                 .environment(registry)
                 .environment(store)
                 .environment(library)
+                .environment(speechSettings)
+                .environment(speech)
         }
 #endif
     }

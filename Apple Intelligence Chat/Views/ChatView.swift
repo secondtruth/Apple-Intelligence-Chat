@@ -12,12 +12,12 @@ struct ChatView: View {
     @Environment(ConversationStore.self) private var store
     @Environment(ProviderRegistry.self) private var registry
     @Environment(ChatEngine.self) private var engine
+    @Environment(SpeechOutputController.self) private var speech
 
     @State private var input = ""
     @State private var inputSelection: TextSelection?
     @State private var composerHeight: CGFloat = 120
     @State private var voice = VoiceInputController()
-    @State private var speech = SpeechOutputController()
     @State private var voiceError: String?
     @FocusState private var isInputFocused: Bool
 
@@ -49,6 +49,11 @@ struct ChatView: View {
             Button("OK") { voiceError = nil }
         } message: {
             Text(voiceError ?? "")
+        }
+        .alert("Read Aloud", isPresented: .constant(speech.errorMessage != nil)) {
+            Button("OK") { speech.errorMessage = nil }
+        } message: {
+            Text(speech.errorMessage ?? "")
         }
     }
 

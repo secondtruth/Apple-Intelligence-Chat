@@ -10,6 +10,9 @@ import SwiftUI
 /// server's models are one list, so switching is a single act.
 struct ModelPicker: View {
     @Environment(ProviderRegistry.self) private var registry
+#if os(macOS)
+    @Environment(\.openSettings) private var openSettings
+#endif
 
     var body: some View {
         Menu {
@@ -36,7 +39,10 @@ struct ModelPicker: View {
             Divider()
             Button("Check Again") { registry.refresh() }
 #if os(macOS)
-            SettingsLink { Text("Server Settings…") }
+            Button("Server Settings…") {
+                UserDefaults.standard.set(SettingsPane.chatServer.rawValue, forKey: SettingsPane.selectionKey)
+                openSettings()
+            }
 #endif
         } label: {
             HStack(spacing: 5) {
