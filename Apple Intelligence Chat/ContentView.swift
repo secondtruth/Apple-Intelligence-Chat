@@ -19,6 +19,8 @@ struct ContentView: View {
     @State private var showSettings = false
     @State private var showErrorAlert = false
     @State private var errorMessage = ""
+    @State private var voiceInputController = VoiceInputController()
+    @State private var speechOutputController = SpeechOutputController()
     
     // Model State
     @State private var session: LanguageModelSession?
@@ -43,12 +45,26 @@ struct ContentView: View {
                     ScrollView {
                         VStack {
                             ForEach(messages) { message in
-                                MessageView(message: message, isResponding: isResponding)
+                                MessageView(
+                                    message: message,
+                                    isResponding: isResponding,
+                                    isSpeaking: speechOutputController.speakingMessageID == message.id,
+                                    onSpeak: message.role == .assistant ? {
+                                        speechOutputController.toggleSpeaking(for: message)
+                                    } : nil
+                                )
                                     .id(message.id)
                             }
                         }
                         .padding()
                         .padding(.bottom, 90) // Space for floating input field
+                    }
+                    .onChange(of: messages.count) {
+                        if let lastMessage = messages.last {
+                            withAnimation {
+                                proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                            }
+                        }
                     }
                     .onChange(of: messages.last?.text) {
                         if let lastMessage = messages.last {
@@ -81,6 +97,11 @@ struct ContentView: View {
             } message: {
                 Text(errorMessage)
             }
+            .onDisappear {
+                voiceInputController.stopRecording()
+                speechOutputController.stopSpeaking()
+                stopStreaming()
+            }
         }
     }
     
@@ -99,20 +120,37 @@ struct ContentView: View {
                         handleSendOrStop()
                     }
                 }
-                .padding(16)
+                .padding(.vertical, 16)
+                .padding(.leading, 16)
+                .padding(.trailing, 96)
             
-            HStack {
+            HStack(spacing: 8) {
                 Spacer()
-                Button(action: handleSendOrStop) {
-                    Image(systemName: isResponding ? "stop.circle.fill" : "arrow.up.circle.fill")
-                        .font(.system(size: 30, weight: .bold))
-                        .foregroundStyle(isSendButtonDisabled ? Color.gray.opacity(0.6) : .primary)
+                Button(action: toggleVoiceInput) {
+                    Image(systemName: voiceInputController.isRecording ? "waveform" : "mic.fill")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 32, height: 32)
+                        .background(voiceInputController.isRecording ? Color.red : Color.secondary.opacity(0.75))
+                        .clipShape(Circle())
                 }
+                .buttonStyle(.plain)
+                .disabled(isResponding)
+                .accessibilityLabel(voiceInputController.isRecording ? "Stop voice input" : "Start voice input")
+
+                Button(action: handleSendOrStop) {
+                    Image(systemName: isResponding ? "stop.fill" : "arrow.up")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 32, height: 32)
+                        .background(isSendButtonDisabled ? Color.gray.opacity(0.4) : Color.accentColor)
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
                 .disabled(isSendButtonDisabled)
                 .animation(.easeInOut(duration: 0.2), value: isResponding)
                 .animation(.easeInOut(duration: 0.2), value: isSendButtonDisabled)
-                .glassEffect(.regular.interactive())
-                .padding(.trailing, 8)
+                .padding(.trailing, 10)
             }
         }
         .glassEffect(.regular.interactive())
@@ -164,6 +202,7 @@ struct ContentView: View {
     }
     
     private func sendMessage() {
+        voiceInputController.stopRecording()
         isResponding = true
         let userMessage = ChatMessage(role: .user, text: inputText)
         messages.append(userMessage)
@@ -191,7 +230,7 @@ struct ContentView: View {
 #if os(iOS)
                         hapticStreamGenerator.selectionChanged()
 #endif
-                        updateLastMessage(with: partialResponse)
+                        updateLastMessage(with: partialResponse.content)
                     }
                 } else {
                     let response = try await currentSession.respond(to: prompt, options: options)
@@ -211,6 +250,18 @@ struct ContentView: View {
     private func stopStreaming() {
         streamingTask?.cancel()
     }
+
+    private func toggleVoiceInput() {
+        Task {
+            do {
+                try await voiceInputController.toggleRecording { transcript in
+                    inputText = transcript
+                }
+            } catch {
+                showError(message: error.localizedDescription)
+            }
+        }
+    }
     
     @MainActor
     private func updateLastMessage(with text: String) {
@@ -224,6 +275,8 @@ struct ContentView: View {
     }
     
     private func resetConversation() {
+        voiceInputController.stopRecording()
+        speechOutputController.stopSpeaking()
         stopStreaming()
         messages.removeAll()
         session = nil

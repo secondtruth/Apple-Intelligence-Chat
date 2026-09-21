@@ -25,6 +25,8 @@ struct ChatMessage: Identifiable, Equatable {
 struct MessageView: View {
     let message: ChatMessage
     let isResponding: Bool
+    let isSpeaking: Bool
+    let onSpeak: (() -> Void)?
     
     var body: some View {
         HStack {
@@ -38,13 +40,25 @@ struct MessageView: View {
                     .glassEffect(in: .rect(cornerRadius: 18))
                 
             } else {
-                VStack(alignment: .leading, spacing: 4) {
-                    if message.text.isEmpty && isResponding {
-                        PulsingDotView()
-                            .frame(width: 60, height: 25)
-                    } else {
-                        Text(message.text)
-                            .textSelection(.enabled)
+                HStack(alignment: .top, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        if message.text.isEmpty && isResponding {
+                            PulsingDotView()
+                                .frame(width: 60, height: 25)
+                        } else {
+                            Text(message.text)
+                                .textSelection(.enabled)
+                        }
+                    }
+                    
+                    if let onSpeak, !message.text.isEmpty {
+                        Button(action: onSpeak) {
+                            Image(systemName: isSpeaking ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                                .foregroundStyle(.secondary)
+                                .frame(width: 28, height: 28)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(isSpeaking ? "Stop speaking response" : "Speak response")
                     }
                 }
                 .padding(.vertical, 8)
