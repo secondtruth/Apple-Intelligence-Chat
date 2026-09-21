@@ -2,77 +2,156 @@
 //  MessageView.swift
 //  Apple Intelligence Chat
 //
-//  Created by Pallav Agarwal on 6/9/25.
-//
 
 import SwiftUI
 
-/// Represents the role of a chat participant
-enum ChatRole {
-    case user
-    case assistant
-}
-
-/// Represents a single message in the chat conversation
-struct ChatMessage: Identifiable, Equatable {
-    let id = UUID()
-    var role: ChatRole
-    var text: String
-}
-
-
-/// View for displaying a single chat message
+/// A single chat bubble. Assistant replies render as Markdown, carry hover
+/// actions and, when generation failed, an inline retry.
 struct MessageView: View {
     let message: ChatMessage
-    let isResponding: Bool
+    let isStreaming: Bool
     let isSpeaking: Bool
-    let onSpeak: (() -> Void)?
-    
+    var onSpeak: (() -> Void)?
+    var onRetry: (() -> Void)?
+
+    @State private var isHovering = false
+    @State private var didCopy = false
+
     var body: some View {
-        HStack {
+        HStack(alignment: .top, spacing: 10) {
             if message.role == .user {
-                Spacer()
-                Text(message.text)
-                    .padding(12)
-                    .foregroundColor(.white)
-                    .background(.blue)
-                    .clipShape(.rect(cornerRadius: 18))
-                    .glassEffect(in: .rect(cornerRadius: 18))
-                
+                Spacer(minLength: 48)
+                userBubble
             } else {
-                HStack(alignment: .top, spacing: 10) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        if message.text.isEmpty && isResponding {
-                            PulsingDotView()
-                                .frame(width: 60, height: 25)
-                        } else {
-                            Text(message.text)
-                                .textSelection(.enabled)
-                        }
-                    }
-                    
-                    if let onSpeak, !message.text.isEmpty {
-                        Button(action: onSpeak) {
-                            Image(systemName: isSpeaking ? "speaker.slash.fill" : "speaker.wave.2.fill")
-                                .foregroundStyle(.secondary)
-                                .frame(width: 28, height: 28)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(isSpeaking ? "Stop speaking response" : "Speak response")
-                    }
-                }
-                .padding(.vertical, 8)
-                Spacer()
+                assistantBubble
+                Spacer(minLength: 48)
             }
         }
         .padding(.vertical, 6)
+        .onHover { isHovering = $0 }
+    }
+
+    // MARK: - Bubbles
+
+    private var userBubble: some View {
+        Text(message.text)
+            .textSelection(.enabled)
+            .padding(.vertical, 10)
+            .padding(.horizontal, 14)
+            .foregroundStyle(.white)
+            .background(.tint, in: .rect(cornerRadius: 18))
+            .glassEffect(in: .rect(cornerRadius: 18))
+    }
+
+    private var assistantBubble: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if message.text.isEmpty && message.failure == nil {
+                PulsingDotView()
+                    .frame(width: 60, height: 25)
+            } else if !message.text.isEmpty {
+                Text(markdown)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            if let failure = message.failure {
+                failureNotice(failure)
+            }
+
+            if !message.text.isEmpty {
+                actions
+                    .opacity(isHovering || isSpeaking ? 1 : 0)
+                    .animation(.easeInOut(duration: 0.15), value: isHovering)
+                    .animation(.easeInOut(duration: 0.15), value: isSpeaking)
+            }
+        }
+        .padding(.vertical, 2)
+    }
+
+    /// Inline rather than an alert: a failed answer belongs where the answer
+    /// would have been, and the thread stays readable behind it.
+    private func failureNotice(_ text: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.orange)
+            VStack(alignment: .leading, spacing: 6) {
+                Text(text)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+                if let onRetry {
+                    Button("Try Again", systemImage: "arrow.clockwise", action: onRetry)
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                }
+            }
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.quaternary.opacity(0.4), in: .rect(cornerRadius: 12))
+    }
+
+    private var actions: some View {
+        HStack(spacing: 2) {
+            Button {
+                copy()
+            } label: {
+                Label(didCopy ? "Copied" : "Copy",
+                      systemImage: didCopy ? "checkmark" : "doc.on.doc")
+            }
+            .help("Copy this reply")
+
+            if let onSpeak {
+                Button(action: onSpeak) {
+                    Label(isSpeaking ? "Stop" : "Speak",
+                          systemImage: isSpeaking ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                }
+                .help(isSpeaking ? "Stop speaking" : "Speak this reply")
+            }
+
+            if let onRetry, message.failure == nil, !isStreaming {
+                Button(action: onRetry) {
+                    Label("Regenerate", systemImage: "arrow.clockwise")
+                }
+                .help("Answer again")
+            }
+        }
+        .labelStyle(.iconOnly)
+        .buttonStyle(.borderless)
+        .foregroundStyle(.secondary)
+        .font(.callout)
+    }
+
+    // MARK: - Helpers
+
+    /// Inline-only parsing keeps the line breaks a chat reply relies on;
+    /// full-document parsing would collapse them.
+    private var markdown: AttributedString {
+        (try? AttributedString(
+            markdown: message.text,
+            options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)))
+            ?? AttributedString(message.text)
+    }
+
+    private func copy() {
+#if os(macOS)
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(message.text, forType: .string)
+#else
+        UIPasteboard.general.string = message.text
+#endif
+        didCopy = true
+        Task {
+            try? await Task.sleep(for: .seconds(2))
+            didCopy = false
+        }
     }
 }
 
-/// Animated loading indicator shown while AI is generating a response
+/// Animated loading indicator shown while the model is generating.
 struct PulsingDotView: View {
     @State private var isAnimating = false
-    
+
     var body: some View {
         HStack(spacing: 6) {
             ForEach(0..<3) { index in
