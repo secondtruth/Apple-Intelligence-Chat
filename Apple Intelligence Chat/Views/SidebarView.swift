@@ -11,6 +11,7 @@ struct SidebarView: View {
 
     @State private var renamingID: Conversation.ID?
     @State private var draftTitle = ""
+    @State private var deletionCandidate: Conversation?
 
     var body: some View {
         @Bindable var store = store
@@ -43,6 +44,20 @@ struct SidebarView: View {
                 .help("New chat (⌘N)")
             }
         }
+        .focusedSceneValue(\.conversationActions, store.selected.map(actions))
+        .confirmationDialog(
+            "Delete “\(deletionCandidate?.displayTitle ?? "")”?",
+            isPresented: deletionBinding,
+            titleVisibility: .visible
+        ) {
+            Button("Delete", role: .destructive) {
+                if let deletionCandidate { store.delete(deletionCandidate.id) }
+                deletionCandidate = nil
+            }
+            Button("Cancel", role: .cancel) { deletionCandidate = nil }
+        } message: {
+            Text("This cannot be undone.")
+        }
         .alert("Rename Conversation", isPresented: renameBinding) {
             TextField("Title", text: $draftTitle)
             Button("Cancel", role: .cancel) { renamingID = nil }
@@ -64,19 +79,42 @@ struct SidebarView: View {
         }
         .padding(.vertical, 2)
         .contextMenu {
-            Button("Rename…", systemImage: "pencil") {
-                draftTitle = conversation.title
-                renamingID = conversation.id
-            }
-            Button("Delete", systemImage: "trash", role: .destructive) {
-                store.delete(conversation.id)
-            }
+            let actions = actions(for: conversation)
+            Button(conversation.isPinned ? "Unpin" : "Pin",
+                   systemImage: conversation.isPinned ? "pin.slash" : "pin",
+                   action: actions.togglePin)
+            Button("Rename…", systemImage: "pencil", action: actions.rename)
+            Button("Delete…", systemImage: "trash", role: .destructive, action: actions.delete)
         }
         .swipeActions {
-            Button("Delete", systemImage: "trash", role: .destructive) {
-                store.delete(conversation.id)
-            }
+            Button("Delete", systemImage: "trash", role: .destructive, action: actions(for: conversation).delete)
         }
+    }
+
+    /// One set of actions behind the context menu, the swipe and the
+    /// Conversation menu, so all three behave alike.
+    private func actions(for conversation: Conversation) -> ConversationActions {
+        ConversationActions(
+            isPinned: conversation.isPinned,
+            togglePin: { store.togglePin(conversation.id) },
+            rename: {
+                draftTitle = conversation.title
+                renamingID = conversation.id
+            },
+            delete: {
+                // An empty draft holds nothing worth a question.
+                if conversation.isEmpty {
+                    store.delete(conversation.id)
+                } else {
+                    deletionCandidate = conversation
+                }
+            })
+    }
+
+    private var deletionBinding: Binding<Bool> {
+        Binding(
+            get: { deletionCandidate != nil },
+            set: { if !$0 { deletionCandidate = nil } })
     }
 
     private var renameBinding: Binding<Bool> {

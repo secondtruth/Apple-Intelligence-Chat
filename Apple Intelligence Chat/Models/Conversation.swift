@@ -14,7 +14,12 @@ struct Conversation: Identifiable, Equatable, Codable, Sendable {
     var createdAt: Date = .now
     var updatedAt: Date = .now
 
+    /// Optional rather than a flag, so files written before pinning existed
+    /// still decode.
+    var pinnedAt: Date?
+
     var isEmpty: Bool { messages.isEmpty }
+    var isPinned: Bool { pinnedAt != nil }
 
     var displayTitle: String {
         title.isEmpty ? String(localized: "New Chat") : title
@@ -58,12 +63,13 @@ struct Conversation: Identifiable, Equatable, Codable, Sendable {
 
 /// Sidebar sections, newest first.
 enum ConversationDateGroup: Int, CaseIterable, Identifiable, Sendable {
-    case today, yesterday, previousWeek, previousMonth, earlier
+    case pinned, today, yesterday, previousWeek, previousMonth, earlier
 
     var id: Int { rawValue }
 
     var title: String {
         switch self {
+        case .pinned: String(localized: "Pinned")
         case .today: String(localized: "Today")
         case .yesterday: String(localized: "Yesterday")
         case .previousWeek: String(localized: "Previous 7 Days")

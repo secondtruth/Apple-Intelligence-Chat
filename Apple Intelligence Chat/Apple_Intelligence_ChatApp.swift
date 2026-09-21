@@ -57,6 +57,7 @@ struct Apple_Intelligence_ChatApp: App {
                 Button("New Chat") { store.newConversation() }
                     .keyboardShortcut("n", modifiers: .command)
             }
+            ConversationCommands()
         }
         .onChange(of: scenePhase) { _, phase in
             // The debounced writer may still be waiting when the app leaves

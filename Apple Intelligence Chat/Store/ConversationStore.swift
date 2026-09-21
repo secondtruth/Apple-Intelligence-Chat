@@ -46,9 +46,12 @@ final class ConversationStore {
         return matching.sorted { $0.updatedAt > $1.updatedAt }
     }
 
-    /// Sidebar sections in fixed order, empty ones omitted.
+    /// Sidebar sections in fixed order, empty ones omitted. Pinned
+    /// conversations leave their date section for one at the top.
     var grouped: [(group: ConversationDateGroup, conversations: [Conversation])] {
-        let buckets = Dictionary(grouping: filtered) { ConversationDateGroup.group(for: $0.updatedAt) }
+        let buckets = Dictionary(grouping: filtered) {
+            $0.isPinned ? .pinned : ConversationDateGroup.group(for: $0.updatedAt)
+        }
         return ConversationDateGroup.allCases.compactMap { group in
             guard let items = buckets[group], !items.isEmpty else { return nil }
             return (group, items)
@@ -84,6 +87,10 @@ final class ConversationStore {
         conversations.removeAll()
         selectedID = nil
         scheduleSave()
+    }
+
+    func togglePin(_ id: Conversation.ID) {
+        update(id, touch: false) { $0.pinnedAt = $0.isPinned ? nil : .now }
     }
 
     func rename(_ id: Conversation.ID, to title: String) {
