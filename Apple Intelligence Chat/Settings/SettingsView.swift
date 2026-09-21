@@ -122,7 +122,8 @@ struct SettingsView: View {
                         ForEach(group) { pane in
                             // A plain stack rather than a Label, for the 8 pt
                             // between tile and title that System Settings and
-                            // CodexBar use. The 32 pt row pitch is the list's.
+                            // CodexBar use. Its text keeps the body size under
+                            // the small row size set below.
                             HStack(spacing: 8) {
                                 PaneIcon(pane: pane)
                                 Text(pane.title)
@@ -132,6 +133,13 @@ struct SettingsView: View {
                     }
                 }
             }
+#if os(macOS)
+            // 28 pt a row, CodexBar's density. Since macOS 26 the sizes are 28,
+            // 32 and 36 pt; the default, medium, gave System Settings' 32 pt,
+            // which is loose for seven rows. The stack above keeps its own
+            // text size, so only the pitch changes.
+            .environment(\.sidebarRowSize, .small)
+#endif
             // The Settings scene ignores the column width alone and cuts the
             // longest title off; the minimum frame holds it.
             .frame(minWidth: 220)
