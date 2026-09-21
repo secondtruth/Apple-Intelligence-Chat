@@ -25,15 +25,20 @@ struct Conversation: Identifiable, Equatable, Codable, Sendable {
         title.isEmpty ? String(localized: "New Chat") : title
     }
 
-    /// First line of the most recent message, for the sidebar row.
+    /// First line of the most recent message, for the sidebar row — without
+    /// the Markdown markers a reply tends to open with.
     var snippet: String {
-        guard let last = messages.last(where: { !$0.text.isEmpty }) else {
-            return String(localized: "No messages yet")
-        }
-        let line = last.text
-            .replacingOccurrences(of: "\n", with: " ")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        return line.isEmpty ? String(localized: "No messages yet") : line
+        let placeholder = String(localized: "No messages yet")
+        guard let last = messages.last(where: { !$0.text.isEmpty }) else { return placeholder }
+        let firstLine = last.text
+            .split(whereSeparator: \.isNewline)
+            .lazy
+            .map { $0.trimmingCharacters(in: CharacterSet(charactersIn: "#>-*+|` \t")) }
+            .first { !$0.isEmpty }
+        guard let firstLine else { return placeholder }
+        return firstLine
+            .replacingOccurrences(of: "**", with: "")
+            .replacingOccurrences(of: "`", with: "")
     }
 
     /// Derives a title from the first user message. Called once, after the
