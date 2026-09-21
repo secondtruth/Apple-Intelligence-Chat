@@ -15,6 +15,7 @@ struct ChatView: View {
 
     @State private var input = ""
     @State private var inputSelection: TextSelection?
+    @State private var composerHeight: CGFloat = 120
     @State private var voice = VoiceInputController()
     @State private var speech = SpeechOutputController()
     @State private var voiceError: String?
@@ -28,23 +29,27 @@ struct ChatView: View {
     private var isResponding: Bool { engine.isResponding(in: conversationID) }
 
     var body: some View {
-        // As a safe-area inset the composer floats over the thread, while
-        // scrolling to the end and centring the empty state both stop short
-        // of it.
-        thread
-            .safeAreaInset(edge: .bottom, spacing: 0) { composerArea }
-            .navigationTitle(conversation?.displayTitle ?? String(localized: "Chat"))
-            .toolbar { toolbarContent }
-            .onAppear { isInputFocused = true }
-            .onDisappear {
-                voice.stopRecording()
-                speech.stopSpeaking()
-            }
-            .alert("Voice Input", isPresented: .constant(voiceError != nil)) {
-                Button("OK") { voiceError = nil }
-            } message: {
-                Text(voiceError ?? "")
-            }
+        // The composer floats over the thread. Its measured height reserves
+        // the room scrolling and the empty state need below them. A safe-area
+        // inset would do the same, but it makes the system light the region
+        // around the composer separately and brighten the content on hover.
+        ZStack(alignment: .bottom) {
+            thread
+            composerArea
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { composerHeight = $0 }
+        }
+        .navigationTitle(conversation?.displayTitle ?? String(localized: "Chat"))
+        .toolbar { toolbarContent }
+        .onAppear { isInputFocused = true }
+        .onDisappear {
+            voice.stopRecording()
+            speech.stopSpeaking()
+        }
+        .alert("Voice Input", isPresented: .constant(voiceError != nil)) {
+            Button("OK") { voiceError = nil }
+        } message: {
+            Text(voiceError ?? "")
+        }
     }
 
     // MARK: - Thread
@@ -66,9 +71,14 @@ struct ChatView: View {
                                 : nil)
                         .id(message.id)
                     }
+                    // The scroll target: the end of the thread sits above
+                    // the composer, not underneath it.
+                    Color.clear
+                        .frame(height: composerHeight)
+                        .id(Self.threadEndID)
                 }
                 .padding(.horizontal, 20)
-                .padding(.vertical, 16)
+                .padding(.top, 16)
                 .frame(maxWidth: 820)
                 .frame(maxWidth: .infinity)
             }
@@ -79,15 +89,18 @@ struct ChatView: View {
             .overlay {
                 if messages.isEmpty {
                     EmptyConversationView(onPick: prefill)
-                        .padding(.vertical, 12)
+                        .padding(.top, 12)
+                        .padding(.bottom, composerHeight)
                 }
             }
         }
     }
 
+    private static let threadEndID = "thread-end"
+
     private func scrollToEnd(_ proxy: ScrollViewProxy) {
-        guard let last = messages.last else { return }
-        withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
+        guard !messages.isEmpty else { return }
+        withAnimation { proxy.scrollTo(Self.threadEndID, anchor: .bottom) }
     }
 
     // MARK: - Composer
@@ -151,7 +164,7 @@ struct ChatView: View {
             .padding(.trailing, 10)
             .padding(.bottom, 10)
         }
-        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 24))
+        .glassEffect(.regular, in: .rect(cornerRadius: 24))
     }
 
     private var sendIsDisabled: Bool {
