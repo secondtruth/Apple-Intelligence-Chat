@@ -29,6 +29,11 @@ struct ContentView: View {
                 }
             }
         }
+#if os(macOS)
+        // Below this the composer's controls and the sidebar rows start to
+        // truncate; the window stops shrinking instead.
+        .frame(minWidth: 640, minHeight: 440)
+#endif
         .onAppear {
             if store.conversations.isEmpty { store.newConversation() }
         }

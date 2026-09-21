@@ -18,6 +18,8 @@ struct Apple_Intelligence_ChatApp: App {
 
     @Environment(\.scenePhase) private var scenePhase
 
+    static let mainWindowID = "main"
+
     init() {
         let store = ConversationStore()
         let registry = ProviderRegistry()
@@ -30,7 +32,10 @@ struct Apple_Intelligence_ChatApp: App {
     }
 
     var body: some Scene {
-        WindowGroup {
+        // The explicit id keeps the frame autosave key stable. Without one the
+        // key is derived from the root view's type, so every added modifier
+        // made the app forget the size its window was resized to.
+        WindowGroup(id: Self.mainWindowID) {
             ContentView()
                 .environment(store)
                 .environment(registry)
@@ -41,6 +46,12 @@ struct Apple_Intelligence_ChatApp: App {
                     installQuickAsk()
                 }
         }
+#if os(macOS)
+        // Sidebar plus a text column of about 90 characters, and short enough
+        // for a 13-inch display.
+        .defaultSize(width: 960, height: 700)
+        .windowResizability(.contentMinSize)
+#endif
         .commands {
             CommandGroup(replacing: .newItem) {
                 Button("New Chat") { store.newConversation() }
