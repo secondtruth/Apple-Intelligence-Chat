@@ -44,11 +44,11 @@ enum SettingsPane: String, CaseIterable, Identifiable {
         switch self {
         case .chatServer: "server.rack"
         case .generation: "slider.horizontal.3"
-        case .readAloud: "speaker.wave.2"
+        case .readAloud: "speaker.wave.2.fill"
         case .speechServer: "waveform"
-        case .quickAsk: "bolt"
-        case .textActions: "text.cursor"
-        case .conversations: "bubble.left.and.bubble.right.fill"
+        case .quickAsk: "bolt.fill"
+        case .textActions: "character.cursor.ibeam"
+        case .conversations: "bubble.left.fill"
         }
     }
 
@@ -66,22 +66,22 @@ enum SettingsPane: String, CaseIterable, Identifiable {
 }
 
 /// The sidebar's icon: a white glyph on a coloured tile, as in System Settings.
-/// There is no public component for it, and SF Symbols' own square variants
-/// exist for one of these seven glyphs. The glyph is fitted into a box of 60 %
-/// of the tile, Apple's proportion; sized by font, a wide symbol such as the
-/// server rack would nearly fill the tile.
+/// No public component draws it; this follows CodexBar's chip. The glyph is
+/// sized by font, which keeps stroke weights equal across symbols — fitting
+/// each into a box scales them apart — so the symbols themselves have to be
+/// compact and filled. A wide one touches the tile's edges.
 private struct PaneIcon: View {
     let pane: SettingsPane
 
     var body: some View {
         Image(systemName: pane.symbolName)
-            .resizable()
-            .scaledToFit()
-            .fontWeight(.semibold)
+            .font(.system(size: 11, weight: .semibold))
             .foregroundStyle(.white)
-            .frame(width: 12, height: 12)
             .frame(width: 20, height: 20)
-            .background(pane.tint.gradient, in: .rect(cornerRadius: 5))
+            .background(
+                LinearGradient(colors: [pane.tint.opacity(0.85), pane.tint], startPoint: .top, endPoint: .bottom),
+                in: .rect(cornerRadius: 5))
+            .accessibilityHidden(true)
     }
 }
 
