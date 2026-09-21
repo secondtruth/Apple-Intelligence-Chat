@@ -13,6 +13,7 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var confirmDeleteAll = false
+    @AppStorage("quickAskHotkeyEnabled") private var quickAskHotkeyEnabled = true
 
     var body: some View {
         Form {
@@ -79,6 +80,22 @@ struct SettingsView: View {
                     .frame(minHeight: 90)
                     .font(.body)
                 Text("Changing this starts a fresh model session for every conversation.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section("Quick Ask") {
+                Toggle("Global Shortcut", isOn: $quickAskHotkeyEnabled)
+                    .onChange(of: quickAskHotkeyEnabled) { _, enabled in
+#if os(macOS)
+                        if enabled {
+                            GlobalHotkey.shared.register { QuickAskController.shared.toggle() }
+                        } else {
+                            GlobalHotkey.shared.unregister()
+                        }
+#endif
+                    }
+                Text("Press \(GlobalHotkey.displayShortcut) anywhere to ask without switching apps.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }

@@ -18,6 +18,7 @@ struct MenuBarContent: View {
     @State private var isRunning = false
 
     var body: some View {
+        Button("Quick Ask") { QuickAskController.shared.show() }
         Button("Open Chat") { activate() }
 
         Divider()

@@ -4,6 +4,9 @@
 //
 
 import SwiftUI
+#if os(macOS)
+import AppKit
+#endif
 
 @main
 struct Apple_Intelligence_ChatApp: App {
@@ -33,7 +36,10 @@ struct Apple_Intelligence_ChatApp: App {
                 .environment(registry)
                 .environment(engine)
                 .environment(library)
-                .task { installTextServices() }
+                .task {
+                    installTextServices()
+                    installQuickAsk()
+                }
         }
         .commands {
             CommandGroup(replacing: .newItem) {
@@ -58,6 +64,22 @@ struct Apple_Intelligence_ChatApp: App {
                 .environment(registry)
                 .environment(store)
                 .environment(library)
+        }
+#endif
+    }
+
+    /// Wires the quick-ask panel to the global shortcut. The shortcut is opt-in
+    /// because it takes a key combination away from every other app.
+    private func installQuickAsk() {
+#if os(macOS)
+        QuickAskController.shared.configure(runner: runner, registry: registry) { question in
+            let id = store.newConversation()
+            engine.send(question, in: id)
+            NSApp.activate(ignoringOtherApps: true)
+            NSApp.windows.first { $0.canBecomeMain }?.makeKeyAndOrderFront(nil)
+        }
+        if UserDefaults.standard.object(forKey: "quickAskHotkeyEnabled") as? Bool ?? true {
+            GlobalHotkey.shared.register { QuickAskController.shared.toggle() }
         }
 #endif
     }

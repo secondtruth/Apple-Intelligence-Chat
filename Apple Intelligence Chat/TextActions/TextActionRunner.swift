@@ -32,6 +32,38 @@ final class TextActionRunner {
         }
     }
 
+    /// A free-form question with no conversation behind it — what the quick-ask
+    /// panel sends. Streams so the panel fills as the answer arrives.
+    func ask(_ question: String, onDelta: @escaping (String) -> Void) async throws -> String {
+        let prompt = question.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !prompt.isEmpty else { throw RunError.emptySelection }
+
+        if case .unavailable(let reason, let recovery) = registry.availability {
+            throw RunError.providerUnavailable([reason, recovery].compactMap { $0 }.joined(separator: " "))
+        }
+
+        let request = ChatRequest(
+            conversationID: UUID(),
+            history: [ChatMessage(role: .user, text: prompt)],
+            settings: registry.settings)
+
+        let provider = registry.current
+        defer { provider.forget(conversation: request.conversationID) }
+
+        var output = ""
+        for try await chunk in provider.stream(request) {
+            switch chunk {
+            case .delta(let delta): output += delta
+            case .replace(let whole): output = whole
+            }
+            onDelta(output)
+        }
+
+        let result = output.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !result.isEmpty else { throw RunError.empty }
+        return result
+    }
+
     func run(_ role: TextActionRole, on selection: String) async throws -> String {
         let text = selection.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { throw RunError.emptySelection }
