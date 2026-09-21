@@ -66,13 +66,20 @@ enum SettingsPane: String, CaseIterable, Identifiable {
 }
 
 /// The sidebar's icon: a white glyph on a coloured tile, as in System Settings.
+/// There is no public component for it, and SF Symbols' own square variants
+/// exist for one of these seven glyphs. The glyph is fitted into a box of 60 %
+/// of the tile, Apple's proportion; sized by font, a wide symbol such as the
+/// server rack would nearly fill the tile.
 private struct PaneIcon: View {
     let pane: SettingsPane
 
     var body: some View {
         Image(systemName: pane.symbolName)
-            .font(.system(size: 11, weight: .semibold))
+            .resizable()
+            .scaledToFit()
+            .fontWeight(.semibold)
             .foregroundStyle(.white)
+            .frame(width: 12, height: 12)
             .frame(width: 20, height: 20)
             .background(pane.tint.gradient, in: .rect(cornerRadius: 5))
     }
