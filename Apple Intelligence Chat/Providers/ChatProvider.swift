@@ -30,6 +30,13 @@ enum ProviderKind: String, CaseIterable, Identifiable, Codable, Sendable {
     }
 }
 
+/// One entry of the model picker. The on-device model and each model of the
+/// server are peers there, although they live behind different providers.
+enum ModelChoice: Hashable, Sendable {
+    case onDevice
+    case server(model: String)
+}
+
 /// Knobs that apply to every provider.
 struct GenerationSettings: Equatable, Sendable {
     var systemInstructions: String

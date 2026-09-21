@@ -15,7 +15,11 @@ final class ProviderRegistry {
     let openAI = OpenAICompatibleProvider()
 
     private(set) var availability: ProviderAvailability = .checking
-    private(set) var models: [String] = []
+    /// What the server offers, fetched whichever provider is selected, so the
+    /// picker can list every possible answerer side by side.
+    private(set) var serverModels: [String] = []
+    /// Why the server's models could not be listed, nil while it answers.
+    private(set) var serverError: String?
     private(set) var isRefreshing = false
 
     private var refreshTask: Task<Void, Never>?
@@ -49,7 +53,7 @@ final class ProviderRegistry {
             Defaults.openAIBaseURL = openAIConfiguration.baseURL
             Defaults.openAIModel = openAIConfiguration.model
             KeychainStore.write(openAIConfiguration.apiKey, account: "openai-compatible")
-            if kind == .openAICompatible { refresh(debounce: .milliseconds(600)) }
+            refresh(debounce: .milliseconds(600))
         }
     }
 
@@ -62,6 +66,53 @@ final class ProviderRegistry {
         case .appleIntelligence: apple
         case .openAICompatible: openAI
         }
+    }
+
+    // MARK: - Model choice
+
+    var choice: ModelChoice {
+        switch kind {
+        case .appleIntelligence: .onDevice
+        case .openAICompatible: .server(model: openAIConfiguration.model)
+        }
+    }
+
+    /// Switches provider and model in one step.
+    func select(_ choice: ModelChoice) {
+        switch choice {
+        case .onDevice:
+            kind = .appleIntelligence
+        case .server(let model):
+            openAIConfiguration.model = model
+            kind = .openAICompatible
+            // Picking from a list is deliberate; skip the typing debounce.
+            refresh()
+        }
+    }
+
+    /// Name of whatever answers the next message.
+    var choiceLabel: String {
+        switch kind {
+        case .appleIntelligence:
+            return ProviderKind.appleIntelligence.displayName
+        case .openAICompatible:
+            let model = openAIConfiguration.model
+            return model.isEmpty ? String(localized: "Choose a Model") : model
+        }
+    }
+
+    /// Host and port of the configured server, the part of the address that
+    /// tells one server from another.
+    var serverHost: String {
+        guard let url = openAIConfiguration.normalizedBaseURL, let host = url.host else {
+            return String(localized: "no address")
+        }
+        return url.port.map { "\(host):\($0)" } ?? host
+    }
+
+    var serverIsLocal: Bool {
+        guard let host = openAIConfiguration.normalizedBaseURL?.host else { return false }
+        return ["localhost", "127.0.0.1", "::1"].contains(host)
     }
 
     /// What the chat pane shows under the composer when nothing can answer.
@@ -97,16 +148,25 @@ final class ProviderRegistry {
             isRefreshing = true
             availability = .checking
             let provider = current
+            // Concurrent, so a slow server cannot delay the on-device verdict.
+            async let catalogue = Result { try await openAI.listModels() }
             let result = await provider.refreshAvailability()
-            let discovered = await provider.availableModels()
             guard !Task.isCancelled else { return }
             availability = result
-            models = discovered
+            let listing = await catalogue
+            guard !Task.isCancelled else { return }
+            let models = (try? listing.get()) ?? []
+            serverModels = models
+            if case .failure(let error) = listing {
+                serverError = error.localizedDescription
+            } else {
+                serverError = nil
+            }
             isRefreshing = false
 
             // A server that offers exactly one model needs no picking.
-            if kind == .openAICompatible, openAIConfiguration.model.isEmpty, discovered.count == 1 {
-                openAIConfiguration.model = discovered[0]
+            if kind == .openAICompatible, openAIConfiguration.model.isEmpty, models.count == 1 {
+                openAIConfiguration.model = models[0]
             }
         }
     }

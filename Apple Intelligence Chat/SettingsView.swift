@@ -17,47 +17,29 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
-            Section("Answers From") {
-                Picker("Provider", selection: providerBinding) {
-                    ForEach(ProviderKind.allCases) { kind in
-                        Text(kind.displayName).tag(kind)
-                    }
-                }
-                availabilityRow
-            }
-
-            if registry.kind == .openAICompatible {
-                Section("Server") {
-                    TextField("Base URL", text: baseURLBinding, prompt: Text("http://localhost:11434/v1"))
-                        .textContentType(.URL)
+            // Always shown: a server has to be configurable before it can be
+            // picked. Which model answers is the composer's choice, not a setting.
+            Section("Server") {
+                TextField("Base URL", text: baseURLBinding, prompt: Text("http://localhost:11434/v1"))
+                    .textContentType(.URL)
 #if os(iOS)
-                        .autocapitalization(.none)
-                        .keyboardType(.URL)
+                    .autocapitalization(.none)
+                    .keyboardType(.URL)
 #endif
-                    SecureField("API Key", text: apiKeyBinding, prompt: Text("Optional"))
+                SecureField("API Key", text: apiKeyBinding, prompt: Text("Optional"))
 
-                    HStack {
-                        if registry.models.isEmpty {
-                            Text("Model")
-                            Spacer()
-                            Text("No models found")
-                                .foregroundStyle(.secondary)
-                        } else {
-                            Picker("Model", selection: modelBinding) {
-                                ForEach(registry.models, id: \.self) { model in
-                                    Text(model).tag(model)
-                                }
-                            }
-                        }
-                        Button("Reload", systemImage: "arrow.clockwise") { registry.refresh() }
-                            .labelStyle(.iconOnly)
-                            .disabled(registry.isRefreshing)
-                    }
-
-                    Text("Works with Ollama, llama.cpp, LM Studio and any other server that speaks the OpenAI chat-completions API. For Ollama, run `ollama serve` and keep the default address.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                HStack(spacing: 8) {
+                    serverStatus
+                    Spacer()
+                    Button("Check Again", systemImage: "arrow.clockwise") { registry.refresh() }
+                        .labelStyle(.iconOnly)
+                        .disabled(registry.isRefreshing)
+                        .help("Check again")
                 }
+
+                Text("Works with Ollama, llama.cpp, LM Studio and any other server that speaks the OpenAI chat-completions API. For Ollama, run `ollama serve` and keep the default address. Its models appear in the model menu below the message field.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
             }
 
             Section("Generation") {
@@ -160,34 +142,24 @@ struct SettingsView: View {
 #endif
     }
 
-    private var availabilityRow: some View {
-        HStack(spacing: 8) {
-            switch registry.availability {
-            case .checking:
-                ProgressView().controlSize(.small)
-                Text("Checking…").foregroundStyle(.secondary)
-            case .available:
-                Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
-                Text("Ready")
-            case .unavailable(let reason, let recovery):
-                Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(reason)
-                    if let recovery {
-                        Text(recovery).font(.footnote).foregroundStyle(.secondary)
-                    }
-                }
-            }
-            Spacer()
+    @ViewBuilder
+    private var serverStatus: some View {
+        if registry.isRefreshing {
+            ProgressView().controlSize(.small)
+            Text("Checking…").foregroundStyle(.secondary)
+        } else if let error = registry.serverError {
+            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+            Text(error)
+        } else if registry.serverModels.isEmpty {
+            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+            Text("Reachable, but no models are installed.")
+        } else {
+            Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+            Text("Reachable, ^[\(registry.serverModels.count) model](inflect: true)")
         }
-        .font(.callout)
     }
 
     // MARK: - Bindings into the observable registry
-
-    private var providerBinding: Binding<ProviderKind> {
-        Binding(get: { registry.kind }, set: { registry.kind = $0 })
-    }
 
     private var baseURLBinding: Binding<String> {
         Binding(
@@ -199,12 +171,6 @@ struct SettingsView: View {
         Binding(
             get: { registry.openAIConfiguration.apiKey },
             set: { registry.openAIConfiguration.apiKey = $0 })
-    }
-
-    private var modelBinding: Binding<String> {
-        Binding(
-            get: { registry.openAIConfiguration.model },
-            set: { registry.openAIConfiguration.model = $0 })
     }
 
     private var streamBinding: Binding<Bool> {

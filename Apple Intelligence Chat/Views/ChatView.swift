@@ -32,10 +32,8 @@ struct ChatView: View {
             composerArea
         }
         .navigationTitle(conversation?.displayTitle ?? String(localized: "Chat"))
-#if os(macOS)
-        .navigationSubtitle(providerLabel)
-#endif
         .toolbar { toolbarContent }
+        .onAppear { isInputFocused = true }
         .onDisappear {
             voice.stopRecording()
             speech.stopSpeaking()
@@ -69,7 +67,7 @@ struct ChatView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 16)
-                .padding(.bottom, 140) // room for the floating composer
+                .padding(.bottom, 160) // room for the floating composer
                 .frame(maxWidth: 820)
                 .frame(maxWidth: .infinity)
             }
@@ -93,9 +91,6 @@ struct ChatView: View {
                 .foregroundStyle(.tint)
             Text("Ask anything")
                 .font(.title2.weight(.semibold))
-            Text(providerLabel)
-                .font(.callout)
-                .foregroundStyle(.secondary)
 
             HStack(spacing: 8) {
                 ForEach(Self.starters, id: \.self) { starter in
@@ -131,7 +126,7 @@ struct ChatView: View {
     }
 
     private var composer: some View {
-        ZStack {
+        VStack(spacing: 0) {
             TextField("Ask anything", text: $input, axis: .vertical)
                 .textFieldStyle(.plain)
                 .lineLimit(1...8)
@@ -139,12 +134,14 @@ struct ChatView: View {
                 .focused($isInputFocused)
                 .disabled(isResponding)
                 .onSubmit { send(input) }
-                .padding(.vertical, 16)
-                .padding(.leading, 16)
-                .padding(.trailing, 96)
+                .padding(.horizontal, 16)
+                .padding(.top, 14)
+                .padding(.bottom, 8)
 
             HStack(spacing: 8) {
-                Spacer()
+                ModelPicker()
+                Spacer(minLength: 8)
+
                 Button(action: toggleVoiceInput) {
                     Image(systemName: voice.isRecording ? "waveform" : "mic.fill")
                         .font(.system(size: 14, weight: .bold))
@@ -169,11 +166,14 @@ struct ChatView: View {
                 .buttonStyle(.plain)
                 .disabled(sendIsDisabled)
                 .help(isResponding ? "Stop generating" : "Send")
+                .accessibilityLabel(isResponding ? "Stop generating" : "Send")
                 .animation(.easeInOut(duration: 0.2), value: isResponding)
-                .padding(.trailing, 10)
             }
+            .padding(.leading, 8)
+            .padding(.trailing, 10)
+            .padding(.bottom, 10)
         }
-        .glassEffect(.regular.interactive())
+        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 24))
     }
 
     private var sendIsDisabled: Bool {
@@ -207,31 +207,6 @@ struct ChatView: View {
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-        ToolbarItem {
-            Menu {
-                Picker("Provider", selection: providerBinding) {
-                    ForEach(ProviderKind.allCases) { kind in
-                        Label(kind.displayName, systemImage: kind.symbolName).tag(kind)
-                    }
-                }
-                .pickerStyle(.inline)
-
-                if registry.kind == .openAICompatible, !registry.models.isEmpty {
-                    Picker("Model", selection: modelBinding) {
-                        ForEach(registry.models, id: \.self) { model in
-                            Text(model).tag(model)
-                        }
-                    }
-                }
-
-                Divider()
-                Button("Check Again", systemImage: "arrow.clockwise") { registry.refresh() }
-            } label: {
-                Label(providerLabel, systemImage: registry.kind.symbolName)
-            }
-            .help("Choose where answers come from")
-        }
-
 #if os(macOS)
         ToolbarItem {
             SettingsLink {
@@ -239,26 +214,6 @@ struct ChatView: View {
             }
         }
 #endif
-    }
-
-    private var providerLabel: String {
-        switch registry.kind {
-        case .appleIntelligence:
-            return ProviderKind.appleIntelligence.displayName
-        case .openAICompatible:
-            let model = registry.openAIConfiguration.model
-            return model.isEmpty ? ProviderKind.openAICompatible.displayName : model
-        }
-    }
-
-    private var providerBinding: Binding<ProviderKind> {
-        Binding(get: { registry.kind }, set: { registry.kind = $0 })
-    }
-
-    private var modelBinding: Binding<String> {
-        Binding(
-            get: { registry.openAIConfiguration.model },
-            set: { registry.openAIConfiguration.model = $0 })
     }
 
     // MARK: - Actions

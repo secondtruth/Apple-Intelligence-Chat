@@ -70,7 +70,7 @@ final class OpenAICompatibleProvider: ChatProvider {
         guard !configuration.model.isEmpty else {
             return .unavailable(
                 reason: String(localized: "No model selected."),
-                recovery: String(localized: "Pick one in Settings."))
+                recovery: String(localized: "Pick one from the model menu."))
         }
         return .available
     }
@@ -84,8 +84,16 @@ final class OpenAICompatibleProvider: ChatProvider {
     }
 
     func availableModels() async -> [String] {
-        guard let url = configuration.endpoint("models") else { return [] }
-        return (try? await fetchModels(from: url)) ?? []
+        (try? await listModels()) ?? []
+    }
+
+    /// The server's catalogue, or the reason it could not be read — what
+    /// Settings shows about a server that is not the selected answerer.
+    func listModels() async throws -> [String] {
+        guard let url = configuration.endpoint("models") else {
+            throw ProviderError.notConfigured(String(localized: "The server address is not a valid URL."))
+        }
+        return try await fetchModels(from: url)
     }
 
     private func fetchModels(from url: URL) async throws -> [String] {
@@ -144,7 +152,7 @@ final class OpenAICompatibleProvider: ChatProvider {
             throw ProviderError.notConfigured(String(localized: "The server address is not a valid URL."))
         }
         guard !configuration.model.isEmpty else {
-            throw ProviderError.notConfigured(String(localized: "No model selected. Pick one in Settings."))
+            throw ProviderError.notConfigured(String(localized: "No model selected. Pick one from the model menu."))
         }
 
         var payload: [String: Any] = [
