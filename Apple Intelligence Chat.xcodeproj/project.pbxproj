@@ -246,6 +246,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = JGMDP3UP5X;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
@@ -261,6 +262,7 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				"INFOPLIST_FILE[sdk=macosx*]" = "Apple Intelligence Chat/Info.plist";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Reaches a model server you run yourself, such as Ollama on this Mac or another machine.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Dictated prompts are recorded so they can be transcribed on this device.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Speech recognition turns your dictation into chat prompts.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
@@ -300,6 +302,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = JGMDP3UP5X;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
@@ -315,6 +318,7 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				"INFOPLIST_FILE[sdk=macosx*]" = "Apple Intelligence Chat/Info.plist";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Reaches a model server you run yourself, such as Ollama on this Mac or another machine.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Dictated prompts are recorded so they can be transcribed on this device.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Speech recognition turns your dictation into chat prompts.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
