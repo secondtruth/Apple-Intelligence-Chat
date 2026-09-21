@@ -15,7 +15,6 @@ struct MessageView: View {
     var onRetry: (() -> Void)?
 
     @State private var isHovering = false
-    @State private var didCopy = false
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
@@ -49,9 +48,8 @@ struct MessageView: View {
                 PulsingDotView()
                     .frame(width: 60, height: 25)
             } else if !message.text.isEmpty {
-                Text(markdown)
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                MarkdownView(text: message.text)
+                    .equatable()
             }
 
             if let failure = message.failure {
@@ -93,13 +91,7 @@ struct MessageView: View {
 
     private var actions: some View {
         HStack(spacing: 2) {
-            Button {
-                copy()
-            } label: {
-                Label(didCopy ? "Copied" : "Copy",
-                      systemImage: didCopy ? "checkmark" : "doc.on.doc")
-            }
-            .help("Copy this reply")
+            CopyButton(text: message.text, help: "Copy this reply")
 
             if let onSpeak {
                 Button(action: onSpeak) {
@@ -129,31 +121,6 @@ struct MessageView: View {
         .buttonStyle(.borderless)
         .foregroundStyle(.secondary)
         .font(.callout)
-    }
-
-    // MARK: - Helpers
-
-    /// Inline-only parsing keeps the line breaks a chat reply relies on;
-    /// full-document parsing would collapse them.
-    private var markdown: AttributedString {
-        (try? AttributedString(
-            markdown: message.text,
-            options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)))
-            ?? AttributedString(message.text)
-    }
-
-    private func copy() {
-#if os(macOS)
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(message.text, forType: .string)
-#else
-        UIPasteboard.general.string = message.text
-#endif
-        didCopy = true
-        Task {
-            try? await Task.sleep(for: .seconds(2))
-            didCopy = false
-        }
     }
 }
 
