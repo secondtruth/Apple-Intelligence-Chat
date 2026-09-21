@@ -120,10 +120,12 @@ struct SettingsView: View {
                 ForEach(SettingsPane.groups, id: \.first) { group in
                     Section {
                         ForEach(group) { pane in
-                            Label {
-                                Text(pane.title)
-                            } icon: {
+                            // A plain stack rather than a Label, for the 8 pt
+                            // between tile and title that System Settings and
+                            // CodexBar use. The 32 pt row pitch is the list's.
+                            HStack(spacing: 8) {
                                 PaneIcon(pane: pane)
+                                Text(pane.title)
                             }
                             .tag(pane)
                         }
