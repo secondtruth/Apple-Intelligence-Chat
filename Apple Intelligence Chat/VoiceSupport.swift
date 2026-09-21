@@ -77,7 +77,10 @@ final class VoiceInputController: NSObject {
 
         stopRecording()
 
-        let recognizer = SFSpeechRecognizer(locale: .current)
+        // The system's language, not Locale.current: that follows the app's
+        // English-only localization and would listen for English on a German Mac.
+        let systemLocale = Locale.preferredLanguages.first.map(Locale.init(identifier:)) ?? .current
+        let recognizer = SFSpeechRecognizer(locale: systemLocale) ?? SFSpeechRecognizer(locale: .current)
         guard let recognizer, recognizer.isAvailable else {
             throw VoiceInputError.recognizerUnavailable
         }
@@ -90,6 +93,10 @@ final class VoiceInputController: NSObject {
         }
 
         recognitionRequest.shouldReportPartialResults = true
+        // The permission prompt promises transcription on this device; without
+        // this the audio may be sent to Apple. Languages without an on-device
+        // model still fall back to the server.
+        recognitionRequest.requiresOnDeviceRecognition = recognizer.supportsOnDeviceRecognition
 
 #if os(iOS) || os(visionOS)
         let audioSession = AVAudioSession.sharedInstance()
