@@ -28,22 +28,23 @@ struct ChatView: View {
     private var isResponding: Bool { engine.isResponding(in: conversationID) }
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            thread
-            composerArea
-        }
-        .navigationTitle(conversation?.displayTitle ?? String(localized: "Chat"))
-        .toolbar { toolbarContent }
-        .onAppear { isInputFocused = true }
-        .onDisappear {
-            voice.stopRecording()
-            speech.stopSpeaking()
-        }
-        .alert("Voice Input", isPresented: .constant(voiceError != nil)) {
-            Button("OK") { voiceError = nil }
-        } message: {
-            Text(voiceError ?? "")
-        }
+        // As a safe-area inset the composer floats over the thread, while
+        // scrolling to the end and centring the empty state both stop short
+        // of it.
+        thread
+            .safeAreaInset(edge: .bottom, spacing: 0) { composerArea }
+            .navigationTitle(conversation?.displayTitle ?? String(localized: "Chat"))
+            .toolbar { toolbarContent }
+            .onAppear { isInputFocused = true }
+            .onDisappear {
+                voice.stopRecording()
+                speech.stopSpeaking()
+            }
+            .alert("Voice Input", isPresented: .constant(voiceError != nil)) {
+                Button("OK") { voiceError = nil }
+            } message: {
+                Text(voiceError ?? "")
+            }
     }
 
     // MARK: - Thread
@@ -67,18 +68,18 @@ struct ChatView: View {
                     }
                 }
                 .padding(.horizontal, 20)
-                .padding(.top, 16)
-                .padding(.bottom, 160) // room for the floating composer
+                .padding(.vertical, 16)
                 .frame(maxWidth: 820)
                 .frame(maxWidth: .infinity)
             }
+            // A reopened conversation shows its latest exchange, not its first.
+            .defaultScrollAnchor(.bottom)
             .onChange(of: messages.count) { scrollToEnd(proxy) }
             .onChange(of: messages.last?.text) { scrollToEnd(proxy) }
             .overlay {
                 if messages.isEmpty {
                     EmptyConversationView(onPick: prefill)
-                        .padding(.top, 12)
-                        .padding(.bottom, 136) // clear of the floating composer
+                        .padding(.vertical, 12)
                 }
             }
         }
