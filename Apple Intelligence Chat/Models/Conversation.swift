@@ -33,6 +33,8 @@ struct Conversation: Identifiable, Equatable, Codable, Sendable {
         let firstLine = last.text
             .split(whereSeparator: \.isNewline)
             .lazy
+            // A fence line holds a language name, not something said.
+            .filter { !$0.trimmingCharacters(in: .whitespaces).hasPrefix("```") }
             .map { $0.trimmingCharacters(in: CharacterSet(charactersIn: "#>-*+|` \t")) }
             .first { !$0.isEmpty }
         guard let firstLine else { return placeholder }
