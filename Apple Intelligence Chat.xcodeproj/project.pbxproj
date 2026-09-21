@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		A17E00012E80000000C0DE01 /* HighlightSwift in Frameworks */ = {isa = PBXBuildFile; productRef = A17E00022E80000000C0DE01 /* HighlightSwift */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		8CB59C142DF7A31C00F9A0BE /* Apple Intelligence Chat.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Apple Intelligence Chat.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +27,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A17E00012E80000000C0DE01 /* HighlightSwift in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +70,7 @@
 			);
 			name = "Apple Intelligence Chat";
 			packageProductDependencies = (
+				A17E00022E80000000C0DE01 /* HighlightSwift */,
 			);
 			productName = "Apple Intelligence Chat";
 			productReference = 8CB59C142DF7A31C00F9A0BE /* Apple Intelligence Chat.app */;
@@ -94,6 +100,9 @@
 			);
 			mainGroup = 8CB59C0B2DF7A31C00F9A0BE;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				A17E00032E80000000C0DE01 /* XCRemoteSwiftPackageReference "HighlightSwift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 8CB59C152DF7A31C00F9A0BE /* Products */;
 			projectDirPath = "";
@@ -373,6 +382,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		A17E00032E80000000C0DE01 /* XCRemoteSwiftPackageReference "HighlightSwift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/appstefan/HighlightSwift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.1.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A17E00022E80000000C0DE01 /* HighlightSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A17E00032E80000000C0DE01 /* XCRemoteSwiftPackageReference "HighlightSwift" */;
+			productName = HighlightSwift;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 8CB59C0C2DF7A31C00F9A0BE /* Project object */;
 }

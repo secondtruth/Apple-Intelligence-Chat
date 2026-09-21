@@ -121,6 +121,19 @@ private struct CodeBlockView: View {
     let language: String?
     let code: String
 
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var highlighted: AttributedString?
+
+    /// While a reply streams, the code grows faster than it is highlighted.
+    /// The coloured part stays and the rest follows plain, instead of the
+    /// whole block flickering between the two.
+    private var displayed: AttributedString {
+        guard let highlighted else { return AttributedString(code) }
+        let done = String(highlighted.characters)
+        guard code.hasPrefix(done) else { return AttributedString(code) }
+        return highlighted + AttributedString(String(code.dropFirst(done.count)))
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
@@ -144,7 +157,7 @@ private struct CodeBlockView: View {
             // Code scrolls sideways rather than wrapping: a wrapped line
             // cannot be told from two lines.
             ScrollView(.horizontal) {
-                Text(code)
+                Text(displayed)
                     .font(.system(size: 12, design: .monospaced))
                     .textSelection(.enabled)
                     // Without it the scroll view's height proposal cuts the
@@ -154,6 +167,25 @@ private struct CodeBlockView: View {
             }
         }
         .background(.quaternary.opacity(0.5), in: .rect(cornerRadius: 8))
+        .task(id: HighlightRequest(code: code, isDark: colorScheme == .dark)) {
+            let isDark = colorScheme == .dark
+            if let hit = CodeHighlighter.shared.cached(code, language: language, isDark: isDark) {
+                highlighted = hit
+                return
+            }
+            // Streaming restarts this task per token; only a pause gets coloured.
+            try? await Task.sleep(for: .milliseconds(120))
+            guard !Task.isCancelled else { return }
+            if let result = await CodeHighlighter.shared.highlight(code, language: language, isDark: isDark),
+               !Task.isCancelled {
+                highlighted = result
+            }
+        }
+    }
+
+    private struct HighlightRequest: Equatable {
+        let code: String
+        let isDark: Bool
     }
 }
 
