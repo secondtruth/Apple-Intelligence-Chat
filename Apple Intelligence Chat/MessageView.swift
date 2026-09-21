@@ -113,7 +113,16 @@ struct MessageView: View {
                 Button(action: onRetry) {
                     Label("Regenerate", systemImage: "arrow.clockwise")
                 }
-                .help("Answer again")
+                .help("Answer again with the selected model")
+            }
+
+            if let model = message.model {
+                Text(model)
+                    .font(.caption)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .padding(.leading, 6)
+                    .accessibilityLabel("Answered by \(model)")
             }
         }
         .labelStyle(.iconOnly)

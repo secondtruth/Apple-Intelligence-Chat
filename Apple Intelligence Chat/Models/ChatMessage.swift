@@ -21,11 +21,17 @@ struct ChatMessage: Identifiable, Equatable, Codable, Sendable {
     /// Populated when generation failed, so the bubble can offer a retry.
     var failure: String?
 
-    init(id: UUID = UUID(), role: ChatRole, text: String, createdAt: Date = .now, failure: String? = nil) {
+    /// Name of the model that wrote an assistant message. A thread can mix
+    /// answerers, and nothing else records which one said what.
+    var model: String?
+
+    init(id: UUID = UUID(), role: ChatRole, text: String, createdAt: Date = .now,
+         failure: String? = nil, model: String? = nil) {
         self.id = id
         self.role = role
         self.text = text
         self.createdAt = createdAt
         self.failure = failure
+        self.model = model
     }
 }

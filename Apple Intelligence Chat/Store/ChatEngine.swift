@@ -70,7 +70,7 @@ final class ChatEngine {
     private func run(in id: Conversation.ID) {
         guard let conversation = store.conversations.first(where: { $0.id == id }) else { return }
 
-        let placeholder = ChatMessage(role: .assistant, text: "")
+        let placeholder = ChatMessage(role: .assistant, text: "", model: registry.choiceLabel)
         store.append(placeholder, to: id)
         respondingConversationID = id
 
