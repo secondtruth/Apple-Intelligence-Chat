@@ -14,6 +14,7 @@ struct ChatView: View {
     @Environment(ChatEngine.self) private var engine
 
     @State private var input = ""
+    @State private var inputSelection: TextSelection?
     @State private var voice = VoiceInputController()
     @State private var speech = SpeechOutputController()
     @State private var voiceError: String?
@@ -74,7 +75,11 @@ struct ChatView: View {
             .onChange(of: messages.count) { scrollToEnd(proxy) }
             .onChange(of: messages.last?.text) { scrollToEnd(proxy) }
             .overlay {
-                if messages.isEmpty { emptyState }
+                if messages.isEmpty {
+                    EmptyConversationView(onPick: prefill)
+                        .padding(.top, 12)
+                        .padding(.bottom, 136) // clear of the floating composer
+                }
             }
         }
     }
@@ -83,34 +88,6 @@ struct ChatView: View {
         guard let last = messages.last else { return }
         withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
     }
-
-    private var emptyState: some View {
-        VStack(spacing: 18) {
-            Image(systemName: registry.kind.symbolName)
-                .font(.system(size: 40))
-                .foregroundStyle(.tint)
-            Text("Ask anything")
-                .font(.title2.weight(.semibold))
-
-            HStack(spacing: 8) {
-                ForEach(Self.starters, id: \.self) { starter in
-                    Button(starter) { send(starter) }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                }
-            }
-            .padding(.top, 4)
-        }
-        .padding(.bottom, 80)
-        .allowsHitTesting(registry.availability.isAvailable)
-        .opacity(registry.availability.isAvailable ? 1 : 0.5)
-    }
-
-    private static let starters = [
-        String(localized: "Explain this error"),
-        String(localized: "Summarize a text"),
-        String(localized: "Draft a reply"),
-    ]
 
     // MARK: - Composer
 
@@ -127,7 +104,7 @@ struct ChatView: View {
 
     private var composer: some View {
         VStack(spacing: 0) {
-            TextField("Ask anything", text: $input, axis: .vertical)
+            TextField("Ask anything", text: $input, selection: $inputSelection, axis: .vertical)
                 .textFieldStyle(.plain)
                 .lineLimit(1...8)
                 .frame(minHeight: 22)
@@ -225,6 +202,14 @@ struct ChatView: View {
         input = ""
         engine.send(prompt, in: conversationID)
         isInputFocused = true
+    }
+
+    /// Puts a starter into the composer with the caret behind it, ready for
+    /// the text it refers to.
+    private func prefill(_ stem: String) {
+        input = stem
+        isInputFocused = true
+        inputSelection = TextSelection(insertionPoint: stem.endIndex)
     }
 
     private func toggleVoiceInput() {
