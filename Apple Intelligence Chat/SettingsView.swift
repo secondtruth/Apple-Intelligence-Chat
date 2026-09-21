@@ -9,6 +9,7 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(ProviderRegistry.self) private var registry
     @Environment(ConversationStore.self) private var store
+    @Environment(PromptLibrary.self) private var library
     @Environment(\.dismiss) private var dismiss
 
     @State private var confirmDeleteAll = false
@@ -80,6 +81,37 @@ struct SettingsView: View {
                 Text("Changing this starts a fresh model session for every conversation.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
+            }
+
+            Section("Text Actions") {
+                Text("These run on the selected text from any app, through the Services menu, and on the clipboard from the menu bar.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+
+                ForEach(TextActionRole.allCases) { role in
+                    DisclosureGroup {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Instructions")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            TextEditor(text: instructionsBinding(for: role))
+                                .frame(minHeight: 54)
+
+                            Text("Prompt — \(PromptTemplate.placeholder) is replaced by the text")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            TextEditor(text: templateBinding(for: role))
+                                .frame(minHeight: 72)
+
+                            Button("Restore Default") { library.reset(role) }
+                                .controlSize(.small)
+                                .disabled(!library.isCustomized(role))
+                        }
+                        .padding(.top, 4)
+                    } label: {
+                        Label(role.title, systemImage: role.symbolName)
+                    }
+                }
             }
 
             Section {
@@ -170,5 +202,25 @@ struct SettingsView: View {
         Binding(
             get: { registry.settings.systemInstructions },
             set: { registry.settings.systemInstructions = $0 })
+    }
+
+    private func instructionsBinding(for role: TextActionRole) -> Binding<String> {
+        Binding(
+            get: { library.prompt(for: role).instructions },
+            set: { value in
+                var prompt = library.prompt(for: role)
+                prompt.instructions = value
+                library.set(prompt, for: role)
+            })
+    }
+
+    private func templateBinding(for role: TextActionRole) -> Binding<String> {
+        Binding(
+            get: { library.prompt(for: role).template },
+            set: { value in
+                var prompt = library.prompt(for: role)
+                prompt.template = value
+                library.set(prompt, for: role)
+            })
     }
 }
