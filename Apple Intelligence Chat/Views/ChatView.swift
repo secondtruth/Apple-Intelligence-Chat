@@ -83,7 +83,13 @@ struct ChatView: View {
                 .frame(maxWidth: .infinity)
             }
             // A reopened conversation shows its latest exchange, not its first.
-            .defaultScrollAnchor(.bottom)
+            // Not .defaultScrollAnchor(.bottom): with it macOS regards even an
+            // empty thread as scrolled away from its top and lights the whole
+            // scroll view whenever the pointer is over it.
+            .task {
+                await Task.yield()
+                scrollToEnd(proxy, animated: false)
+            }
             .onChange(of: messages.count) { scrollToEnd(proxy) }
             .onChange(of: messages.last?.text) { scrollToEnd(proxy) }
             .overlay {
@@ -98,9 +104,13 @@ struct ChatView: View {
 
     private static let threadEndID = "thread-end"
 
-    private func scrollToEnd(_ proxy: ScrollViewProxy) {
+    private func scrollToEnd(_ proxy: ScrollViewProxy, animated: Bool = true) {
         guard !messages.isEmpty else { return }
-        withAnimation { proxy.scrollTo(Self.threadEndID, anchor: .bottom) }
+        if animated {
+            withAnimation { proxy.scrollTo(Self.threadEndID, anchor: .bottom) }
+        } else {
+            proxy.scrollTo(Self.threadEndID, anchor: .bottom)
+        }
     }
 
     // MARK: - Composer
