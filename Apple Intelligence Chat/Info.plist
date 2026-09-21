@@ -17,6 +17,8 @@
 				<key>default</key>
 				<string>Rewrite with Local Model</string>
 			</dict>
+			<key>NSRequiredContext</key>
+			<dict/>
 			<key>NSMessage</key>
 			<string>rewriteSelection</string>
 			<key>NSPortName</key>
@@ -40,6 +42,8 @@
 				<key>default</key>
 				<string>Summarize with Local Model</string>
 			</dict>
+			<key>NSRequiredContext</key>
+			<dict/>
 			<key>NSMessage</key>
 			<string>summarizeSelection</string>
 			<key>NSPortName</key>
@@ -63,6 +67,8 @@
 				<key>default</key>
 				<string>Translate with Local Model</string>
 			</dict>
+			<key>NSRequiredContext</key>
+			<dict/>
 			<key>NSMessage</key>
 			<string>translateSelection</string>
 			<key>NSPortName</key>
@@ -86,6 +92,8 @@
 				<key>default</key>
 				<string>Ask Local Model…</string>
 			</dict>
+			<key>NSRequiredContext</key>
+			<dict/>
 			<key>NSMessage</key>
 			<string>askAboutSelection</string>
 			<key>NSPortName</key>
